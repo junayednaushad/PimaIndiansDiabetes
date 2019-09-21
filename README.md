@@ -1,1 +1,1 @@
-# PimaIndiansDiabetes
+This repository contains implementations of various machine learning models in c++ and python. These models have been applied to the Pima Indians Diabetes dataset(https://www.kaggle.com/uciml/pima-indians-diabetes-database) to solve a supervised binary classification problem: predicting whether or not an individual will develop diabetes based on several diagnostic measures.  
