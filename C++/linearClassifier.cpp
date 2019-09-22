@@ -38,11 +38,100 @@ void multConstant(double constant, std::vector<double> &a)
         a[i] *= constant;
 }
 
-void printVector(std::vector<double> const &a)
+void getCentroids(std::string filename, std::vector<double> &p, std::vector<double> &n)
 {
-    for(int i = 0; i < a.size(); i++)
-        std::cout << a[i] << " ";
-    std::cout << std::endl; 
+    assert(p.size() == 8 && n.size() == 8);
+
+    std::ifstream trainingFile;
+    trainingFile.open(filename);
+    if(!trainingFile.is_open())
+    {
+        std::cerr << "unable to open " << filename << std::endl;
+        std::exit(0);
+    }
+    
+    int numOfPositive = 0;
+    int numOfNegative = 0;
+
+    std::string preg, gluc, press, skin, ins, bmi, dpf, age, classification;
+    double preg_d, gluc_d, press_d, skin_d, ins_d, bmi_d, dpf_d, age_d, classification_d;  
+    while(!trainingFile.eof())
+    {
+        getline(trainingFile, preg, ',');
+        preg_d = std::stod(preg);
+        preg_d /= 28;
+
+        getline(trainingFile, gluc, ',');
+        gluc_d = std::stod(gluc);
+        gluc_d /= 200;
+
+        getline(trainingFile, press, ',');
+        press_d = std::stod(press);
+        press_d /= 125;
+
+        getline(trainingFile, skin, ',');
+        skin_d = std::stod(skin);
+        skin_d /= 100;
+
+        getline(trainingFile, ins, ',');
+        ins_d = std::stod(ins);
+        ins_d /= 850;
+
+        getline(trainingFile, bmi, ',');
+        bmi_d = std::stod(bmi);
+        bmi_d /= 68;
+
+        getline(trainingFile, dpf, ',');
+        dpf_d = std::stod(dpf);
+        dpf_d /= 2.45;
+
+        getline(trainingFile, age, ',');
+        age_d = std::stod(age);
+        age_d /= 100;
+
+        getline(trainingFile, classification, '\n');
+        classification_d = std::stod(classification);
+
+        if(classification_d == 0)
+        {
+            numOfNegative += 1;
+            n[0] += preg_d;
+            n[1] += gluc_d;
+            n[2] += press_d;
+            n[3] += skin_d;
+            n[4] += ins_d;
+            n[5] += bmi_d;
+            n[6] += dpf_d;
+            n[7] += age_d;
+        }
+        else
+        {
+            numOfPositive += 1;
+            p[0] += preg_d;
+            p[1] += gluc_d;
+            p[2] += press_d;
+            p[3] += skin_d;
+            p[4] += ins_d;
+            p[5] += bmi_d;
+            p[6] += dpf_d;
+            p[7] += age_d;
+        }
+    }
+    double cons_p = 1.0/numOfPositive;
+    double cons_n = 1.0/numOfNegative;
+    multConstant(cons_p, p);
+    multConstant(cons_n, n);
+
+    std::cout << "Total training data: " << numOfPositive+numOfNegative << std::endl;
+    trainingFile.close();
+}
+
+double getThreshold(std::vector<double> const &p, std::vector<double> const &n)
+{
+    std::vector<double> sum = add(p,n);
+    std::vector<double> diff = subtract(p,n);
+    double dot_product = dotProduct(sum,diff);
+    return 0.5*dot_product;
 }
 
 void testClassifier(std::string filename, std::vector<double> const &w, double t)
@@ -126,17 +215,21 @@ void testClassifier(std::string filename, std::vector<double> const &w, double t
 
 int main(int argc, char ** argv)
 {
-    if(argc != 2)
+    if(argc != 3)
     {
-        std::cerr << "usage: testClassifier testData.csv" << std::endl;
+        std::cerr << "usage: linearClassifier train.csv test.csv" << std::endl;
         std::exit(0);
     }
 
-    std::string testingFile = argv[1];  
+    std::string trainingFile = argv[1];
+    std::string testingFile = argv[2]; 
 
-    std::vector<double> w = {0.0540101, 0.157382, 0.0196776, 0.0258488, 0.0442285, 0.0785162, 0.0545552, 0.0545369};
-    double t = 0.194649;
+    std::vector<double> p = {0,0,0,0,0,0,0,0};
+    std::vector<double> n = {0,0,0,0,0,0,0,0};
     
+    getCentroids(trainingFile,p,n);
+    std::vector<double> w = subtract(p,n);
+    double t = getThreshold(p,n);
     testClassifier(testingFile,w,t);
 
     return 0;
